@@ -84,19 +84,38 @@ class Mapping:
 
 class Resource(object):
 
+  keymap = {'Properties': 'properties', 'Metadata': 'metadata'}
+
   def __init__(self, resource_type):
     self.resource_type = resource_type
+
+  @property
+  def template(self):
+    T = {'Type': self.resource_type}
+    for key, attrib_name in self.keymap.items():
+      try:
+        attrib = getattr(self, attrib_name)
+      except AttributeError:
+        pass
+      else:
+        if attrib:
+          T[key] = attrib
+    return T
+
+
+class BaseInstance(Resource):
+
+  def __init__(self):
+    super(BaseInstance, self).__init__(resource_type='AWS::EC2::Instance')
     self.properties = {}
     self.metadata = {}
 
 
-class EC2Instance(Resource):
+class EC2Instance(BaseInstance):
 
   def __init__(self, image_id, key, instance_type, userdata_files=[],
-               userdata_script='', security_groups=[], tags=[],
-               *args, **kwargs):
-    super(EC2Instance, self).__init__(resource_type="AWS::EC2::Instance",
-                                      *args, **kwargs)
+               userdata_script='', security_groups=[], tags=[]):
+    super(EC2Instance, self).__init__()
     self.properties['InstanceType'] = instance_type
     self.properties['ImageId'] = image_id
     self.properties['KeyName'] = key
@@ -138,12 +157,6 @@ class EC2Instance(Resource):
       return {'Fn::Base64': file2cfn(files[0])}
     else:
       pass # mess with MIME
-
-  @property
-  def template(self):
-    return {'Type': self.resource_type,
-            'Properties': self.properties,
-            'Metadata': self.metadata}
 
 
 def file2cfn(fh):
