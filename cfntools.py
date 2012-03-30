@@ -4,20 +4,12 @@ import json
 import re
 import types
 
+from IntrinsicFunctions import *
 from PseudoParameters import *
 
+# 3rd party packages in PyPi
 from bidict import bidict
 import cloudformation as cfn
-
-def fn_join(sep, lst):
-  return {'Fn:Join': [sep, lst]}
-
-def fn_getatt(parameterised_object):
-  # takes "object[parameter]"
-  regex = re.compile(r'(?P<object>[^[]+)\[(?P<parameter>\w+)\]')
-  g = regex.match(parameterised_object).groupdict()
-  return {"Fn:GetAtt": [g['object'], g['parameter']]}
-
 
 # XXX We need a class that can encapsulate a string that contains references
 
