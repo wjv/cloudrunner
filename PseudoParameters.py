@@ -2,6 +2,8 @@
 
 __all__ = ['region', 'stackname']
 
+from IntrinsicFunctions import Ref
+
 
 class PseudoParameter(object):
 

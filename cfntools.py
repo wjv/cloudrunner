@@ -7,7 +7,7 @@ import types
 from IntrinsicFunctions import *
 from PseudoParameters import *
 
-# 3rd party packages in PyPi
+# 3rd party packages in PyPI
 from bidict import bidict
 import cloudformation as cfn
 
@@ -15,6 +15,7 @@ import cloudformation as cfn
 # Any object not flattened to a template repr. by a class' template property
 # will be flattened to a Ref by the Stack object, which contains the master
 # name<->object mapping.
+
 
 class Stack(object):
 
@@ -25,8 +26,6 @@ class Stack(object):
     self.parameters = []
     self.mappings = []
     self.resources = []
-    self.name = AWSStackName()
-    self.region = AWSRegion()
 
   def addParameter(self, name, p):
     assert isinstance(p, Parameter)
@@ -38,29 +37,18 @@ class Stack(object):
     self.namespace[name] = r
     self.resources.append(r)
 
-  # The whole "flatteing" procedure probably ought to be devolved to the
-  # various classes?  I.e. each returns a template that's simply a construct of
-  # dicts, lists, strings.
-  # But wait! object->name mappings only live in Stack, so maybe not?
-
-  def _dereference(self, obj):
-    """Return the name of obj in the Stack's namespace."""
-    return self.namespace.inv[obj]
-
-  def _flatten(self, obj):
-    """Resolve all references in a template."""
-    if isinstance(obj, dict):
-      return dict([(k, self._flatten(v)) for (k, v) in obj.items()])
-    elif isinstance(obj, list):
-      return map(self._flatten, obj)
-    elif isinstance(obj, str):
-      return obj
-    else:
-      return {'Ref': self._dereference(obj)}
-
-  def _templatify(self, obj_list):
-    return dict([(self._dereference(o), self._flatten(o.template))
-                 for o in obj_list])
+  def dereference(self, obj):
+    """Return (obj.name, obj.template) fullly resolved in Stack's namespace."""
+    def _flatten(self, t_obj, namespace):
+      if isinstance(t_obj, dict):
+        return dict([(k, _flatten(v)) for (k, v) in t_obj.items()])
+      elif isinstance(t_obj, list):
+        return map(_flatten, t_obj)
+      elif isinstance(t_obj, str):
+        return t_obj
+      else:
+        return t_obj.resolve(namespace)
+    return self.namespace.inv[obj], _flatten(obj.template, self.namespace)
 
   @property
   def template(self):
@@ -68,11 +56,11 @@ class Stack(object):
     if self.description:
       T["Description"] = self.description
     if self.mappings:
-      T["Mappings"] = self._templatify(self.mappings)
+      T["Mappings"] = dict(self.dereference(o) for o in self.mappings)
     if self.parameters:
-      T["Parameters"] = self._templatify(self.parameters)
+      T["Parameters"] = dict(self.dereference(o) for o in self.parameters)
     if self.resources:
-      T["Resources"] = self._templatify(self.resources)
+      T["Resources"] = dict(self.dereference(o) for o in self.resources)
     return T
 
 
@@ -100,18 +88,13 @@ class Mapping:
 # Utility class; will never be an attriute of Stack
 class InterpolatedScript(object):
 
-  # We're going with XXX__OBJECT__XXX being {'Ref': 'OBJECT'}
-  # and XXX__OBJECT[PARAM]__XXX being {'Fn::GetAtt' : ['OBJECT', 'PARAM']}
-
-  # XXX No, wrong. Need to pass a fh, and a list of substitution objects.
-  # I.e. no deref required.
-
   # Or maybe pass in a dict, and XXX__KEY__XXX can refer to dict['KEY']?
   # Yeah I like that.
 
   param_regex = re.compile(r"XXX__(?P<obj>\S+)__XXX")
 
   def __init__(self, fh, substitutions={}):
+    #substitutions is a dict of obj_name->objects
     self.lines = []
     for line in fh.xreadlines():
       while True:

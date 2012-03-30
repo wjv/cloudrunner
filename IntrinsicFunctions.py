@@ -6,6 +6,10 @@ __all__ = ['Fn_Join', 'Fn_GetAtt', 'Ref']
 # but can only be resolve()'d inside a Stack. Possibly the resolve() method
 # should be added to all parameters &c., so that a Stack can simply do a
 # recursive resolve() on any object.
+#
+# Nope, let's very specifically only give resolve() methods to objects that can
+# resolve, thereby causing an exception if we try to call resolve() on anything
+# else!
 
 class IntrinsicFunction(object):
 
