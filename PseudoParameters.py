@@ -1,8 +1,7 @@
 """AWS CloudFormation pseudo parameters"""
 
-__all__ = ['region', 'stackname']
 
-from IntrinsicFunctions import Ref
+__all__ = ['region', 'stackname']
 
 
 class PseudoParameter(object):
