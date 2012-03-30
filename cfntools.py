@@ -11,8 +11,6 @@ from PseudoParameters import *
 from bidict import bidict
 import cloudformation as cfn
 
-# XXX We need a class that can encapsulate a string that contains references
-
 # XXX Does this work for us?
 # Any object not flattened to a template repr. by a class' template property
 # will be flattened to a Ref by the Stack object, which contains the master
@@ -105,18 +103,24 @@ class InterpolatedScript(object):
   # We're going with XXX__OBJECT__XXX being {'Ref': 'OBJECT'}
   # and XXX__OBJECT[PARAM]__XXX being {'Fn::GetAtt' : ['OBJECT', 'PARAM']}
 
+  # XXX No, wrong. Need to pass a fh, and a list of substitution objects.
+  # I.e. no deref required.
+
+  # Or maybe pass in a dict, and XXX__KEY__XXX can refer to dict['KEY']?
+  # Yeah I like that.
+
   param_regex = re.compile(r"XXX__(?P<obj>\S+)__XXX")
 
   def __init__(self, fh, substitutions={}):
     self.lines = []
     for line in fh.xreadlines():
-      while 1:
+      while True:
         m = param_regex.search(line)
         if not m:
           self.lines.append(line)
           break
         else:
-          obj = m.groupdict()['obj']    # XXX needs a deref
+          obj = substitutions[m.groupdict()['obj']]
           first, last = m.split(line)
           self.lines.extend([first, obj])
           line = last
