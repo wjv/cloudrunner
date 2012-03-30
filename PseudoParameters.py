@@ -1,6 +1,5 @@
 """AWS CloudFormation pseudo parameters"""
 
-
 __all__ = ['region', 'stackname']
 
 
