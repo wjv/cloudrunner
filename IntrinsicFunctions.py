@@ -7,7 +7,7 @@ __all__ = ['Fn_Join', 'Fn_GetAtt', 'Ref']
 # should be added to all parameters &c., so that a Stack can simply do a
 # recursive resolve() on any object.
 
-class IntrinsicFunction(IntrinsicFunction):
+class IntrinsicFunction(object):
 
   def resolve(self, namespace):
     # Should we pass namespace here, or just leave it for those IFuncs that
