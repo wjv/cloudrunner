@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
+import json
 import re
 import types
 
-from rdict import rdict
+from PseudoParameters import *
 
-import json
 from bidict import bidict
 import cloudformation as cfn
 
@@ -18,25 +18,6 @@ def fn_getatt(parameterised_object):
   g = regex.match(parameterised_object).groupdict()
   return {"Fn:GetAtt": [g['object'], g['parameter']]}
 
-
-class PseudoParameter(object):
-
-  @property
-  def template(self):
-    return {"Ref": self.name}
-
-class AWSRegion(PseudoParameter):
-
-  def __init__(self):
-    self.name = "AWS::Region"
-
-class AWSStackName(PseudoParameter):
-
-  def __init__(sel):
-    self.name = "AWS::StackName"
-
-psvar_region = AWSRegion()
-psvar_stackname = AWSStackName()
 
 # XXX We need a class that can encapsulate a string that contains references
 
