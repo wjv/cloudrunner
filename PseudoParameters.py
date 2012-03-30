@@ -1,6 +1,5 @@
 """AWS CloudFormation pseudo parameters"""
 
-
 __all__ = ['region', 'stackname']
 
 
@@ -19,7 +18,7 @@ class AWSRegion(PseudoParameter):
 
 class AWSStackName(PseudoParameter):
 
-  def __init__(sel):
+  def __init__(self):
     self.name = "AWS::StackName"
 
 

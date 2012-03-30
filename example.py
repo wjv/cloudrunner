@@ -11,7 +11,7 @@ C = Config()
 C.add_command("list files", "ls -al")
 C.add_package("yum", "gcc")
 
-myInstance = EC2Instance(image_id="ABI-abc", key=pKeyName,
+myInstance = EC2Instance(image_id="ABI-abc", keypair=pKeyName,
                          instance_type="foo.small")
 
 S.addParameter("pKeyName", pKeyName)

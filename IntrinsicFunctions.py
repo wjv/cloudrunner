@@ -44,4 +44,4 @@ class Ref(IntrinsicFunction):
     self.obj = obj
 
   def resolve(self, namespace):
-    return {"Ref": namespace.inv[obj]}
+    return {"Ref": namespace.inv[self.obj]}

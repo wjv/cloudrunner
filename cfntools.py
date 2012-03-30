@@ -39,7 +39,9 @@ class Stack(object):
 
   def dereference(self, obj):
     """Return (obj.name, obj.template) fullly resolved in Stack's namespace."""
-    def _flatten(self, t_obj, namespace):
+    namespace = self.namespace
+    obj_name = namespace.inv[obj]
+    def _flatten(t_obj, namespace=namespace):
       if isinstance(t_obj, dict):
         return dict([(k, _flatten(v)) for (k, v) in t_obj.items()])
       elif isinstance(t_obj, list):
@@ -47,8 +49,13 @@ class Stack(object):
       elif isinstance(t_obj, str):
         return t_obj
       else:
-        return t_obj.resolve(namespace)
-    return self.namespace.inv[obj], _flatten(obj.template, self.namespace)
+        try:
+          r = t_obj.resolve(namespace)
+        except AttributeError:
+          raise AttributeError, "No 'resolve' attribute in %s named %s" % \
+                                (repr(t_obj), namespace.inv[t_obj])
+        return r
+    return obj_name, _flatten(obj.template)
 
   @property
   def template(self):
@@ -245,7 +252,7 @@ class EC2Instance(BaseInstance):
 
     self.properties['InstanceType'] = instance_type
     self.properties['ImageId'] = image_id
-    self.properties['KeyPair'] = keypair
+    self.properties['KeyPair'] = Ref(keypair)
 
     if security_groups:
       self.properties['SecurityGroups'] = security_groups
