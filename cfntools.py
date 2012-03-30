@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import re
 import types
 
 from rdict import rdict
@@ -11,17 +12,50 @@ import cloudformation as cfn
 def fn_join(sep, lst):
   return {'Fn:Join': [sep, lst]}
 
+def fn_getatt(parameterised_object):
+  # takes "object[parameter]"
+  regex = re.compile(r'(?P<object>[^[]+)\[(?P<parameter>\w+)\]')
+  g = regex.match(parameterised_object).groupdict()
+  return {"Fn:GetAtt": [g['object'], g['parameter']]}
+
+
+class PseudoParameter(object):
+
+  @property
+  def template(self):
+    return {"Ref": self.name}
+
+class AWSRegion(PseudoParameter):
+
+  def __init__(self):
+    self.name = "AWS::Region"
+
+class AWSStackName(PseudoParameter):
+
+  def __init__(sel):
+    self.name = "AWS::StackName"
+
+psvar_region = AWSRegion()
+psvar_stackname = AWSStackName()
+
 # XXX We need a class that can encapsulate a string that contains references
+
+# XXX Does this work for us?
+# Any object not flattened to a template repr. by a class' template property
+# will be flattened to a Ref by the Stack object, which contains the master
+# name<->object mapping.
 
 class Stack(object):
 
-  def __init__(self, description = "", version="2010-09-09"):
+  def __init__(self, description="", version="2010-09-09"):
     self.description = description
     self.version = version
     self.namespace = bidict()
     self.parameters = []
     self.mappings = []
     self.resources = []
+    self.name = AWSStackName()
+    self.region = AWSRegion()
 
   def addParameter(self, name, p):
     assert isinstance(p, Parameter)
@@ -32,6 +66,11 @@ class Stack(object):
     assert isinstance(r, Resource)
     self.namespace[name] = r
     self.resources.append(r)
+
+  # The whole "flatteing" procedure probably ought to be devolved to the
+  # various classes?  I.e. each returns a template that's simply a construct of
+  # dicts, lists, strings.
+  # But wait! object->name mappings only live in Stack, so maybe not?
 
   def _dereference(self, obj):
     """Return the name of obj in the Stack's namespace."""
@@ -87,14 +126,40 @@ class Parameter:
 class Mapping:
   pass
 
+# Utility class; will never be an attriute of Stack
+class InterpolatedScript(object):
+
+  # We're going with XXX__OBJECT__XXX being {'Ref': 'OBJECT'}
+  # and XXX__OBJECT[PARAM]__XXX being {'Fn::GetAtt' : ['OBJECT', 'PARAM']}
+
+  param_regex = re.compile(r"XXX__(?P<obj>\S+)__XXX")
+
+  def __init__(self, fh, substitutions={}):
+    self.lines = []
+    for line in fh.xreadlines():
+      while 1:
+        m = param_regex.search(line)
+        if not m:
+          self.lines.append(line)
+          break
+        else:
+          obj = m.groupdict()['obj']    # XXX needs a deref
+          first, last = m.split(line)
+          self.lines.extend([first, obj])
+          line = last
+
+  @property
+  def template(self):
+    return self.lines
+
 
 class Resource(object):
 
   keymap = {'Type': 'resource_type',
             'Properties': 'properties',
             'Metadata': 'metadata',
-            'DependsOn', 'depends_on',
-            'DeletionPolicy', 'deletion_policy'}
+            'DependsOn': 'depends_on',
+            'DeletionPolicy': 'deletion_policy'}
 
   def __init__(self, resource_type):
     self.resource_type = resource_type
@@ -113,7 +178,8 @@ class Resource(object):
     return T
 
 
-class CFNInit(Resource):
+# Utility class; will never be an attriute of Stack
+class Config(object):
 
   from string import ascii_lowercase as a_l
   cmd_indices = [c + d for c in a_l for d in a_l]
@@ -122,32 +188,22 @@ class CFNInit(Resource):
                  'sources', 'users']
   pkg_types = ['yum', 'python']                 # XXX expand
 
-  # Is officialy a Resource Type, but doesn't quite act like one --
-  # no Type attribute, no Properties, &c.
+  def __init__(self, template={}):
+    self.__dict__.update(template)              # XXX is this kosher?
 
-  def __init__(self, configsets={}, configs={'config': {}}):
-    self.configsets = {}
-    self.configs = configs
-
-  # XXX If there aren't multiple configs, then we operate on one config named
-  # 'config' -- how best to implement?
-
-  def add_config(self, name):
-    self.configs[name] = {}
-
-  def add_package(self, config, pkg_type, name, versions=[]):
+  def add_package(self, pkg_type, name, versions=[]):
     if not isinstance(versions, list):
       versions = [versions]
-    if not 'packages' in config:
-      config['packages'] = {}
-    if not 'pkg_type' in config['packages']:
-      config['packages'][pkg_type] = {}
-    config['packages'][pkg_type][name] = versions
+    if not hasattr(self, 'packages'):
+      self.packages = {}
+    if not 'pkg_type' in self.packages:
+      self.packages[pkg_type] = {}
+    self.packages[pkg_type][name] = versions
 
   def _next_cmdprefix(self, prefix):
     return self.cmd_indices[self.cmd_indices.index(prefix) + 1]
 
-  def add_command(self, config, name, command):
+  def add_command(self, name, command):
     """Add a command to config.
 
     Commands are executed in alphabetical order. Hence, we prefix command names
@@ -158,29 +214,57 @@ class CFNInit(Resource):
     # XXX Figure out a way that commands can have references
     assert isinstance(command, (str, list)), \
         "%s: command must be a string or list" % self.__name__
-    if not 'commands' in config:
-      config['commands'] = {}
+    if not hasattr(self, 'commands'):
+      self.commands = {}
       prefix = 'aa'
     else:
-      last_prefix = sorted(config['commands'].keys())[-1].split('_')[0]
+      last_prefix = sorted(self.commands.keys())[-1].split('_')[0]
       prefix = self._next_cmdprefix(last_prefix)
-    config['commands']['_'.join(prefix, name)] = command
+    self.commands['_'.join([prefix, name])] = command
 
-  # configsets is a dict of lists
+  @property
+  def template(self):
+    return self.__dict__                # XXX XXX XXX 
+
+
+# Utility class; will never be an attriute of Stack
+class CFNInit(Resource):
+
+  # Is officialy a Resource Type, but doesn't quite act like one --
+  # no Type attribute, no Properties, &c.
+  # NOTE that generally we either contain one configset and a bunch of configs,
+  # or a single config named 'config'.
+
+  def __init__(self, template={}):
+    try:
+      self.configsets = template.pop('configsets')
+    except KeyError:
+      self.configsets = {}
+    if not template:
+      self.configs = {'config': Config()} # XXX
+    elif len(template) == 1:
+      self.configs = {'config', Config(template.pop('config'))}
+    else:
+      self.configs = dict((k, Config(v)) for k, v in template.items())
+
+  def add_config(self, name, template={}):
+    self.configs[name] = Config(template)
+
+  # configsets is a dict of lists of config _names_
   def add_configset(self, name, configlist):
     self.configsets[name] = []
-    for config in configlist:
+    for configname in configlist:
       if config not in self.configs:
-        self.add_config(config)
-      self.configsets[name].append(config)
+        self.add_config(configname)
+      self.configsets[name].append(configname)
 
   @property
   def template(self):
     D = {}
     if self.configsets:
-      pass # D['configsets'] = 
+      D['configsets'] = self.configsets
     for config in self.configs:
-      pass # D['config'] = 
+      D['config'] = config.template
     return {'AWS::CloudFormation::Init': D}
     
 
@@ -248,6 +332,10 @@ class EC2Instance(BaseInstance):
       return {'Fn::Base64': file2cfn(files[0])}
     else:
       pass # mess with MIME
+
+
+def jsonify(obj, indent=2, *args, **kwargs):
+  return json.dumps(obj.template, indent=indent, *args, **kwargs)
 
 
 def file2cfn(fh):

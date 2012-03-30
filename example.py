@@ -7,6 +7,10 @@ S = Stack()
 
 pKeyName = Parameter(paramtype='String', description="EC2 key pair")
 
+C = Config()
+C.add_command("list files", "ls -al")
+C.add_package("yum", "gcc")
+
 myInstance = EC2Instance(image_id="ABI-abc", key=pKeyName,
                          instance_type="foo.small")
 
