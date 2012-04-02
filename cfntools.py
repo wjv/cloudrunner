@@ -11,11 +11,6 @@ from PseudoParameters import *
 from bidict import bidict
 import cloudformation as cfn
 
-# XXX Does this work for us?
-# Any object not flattened to a template repr. by a class' template property
-# will be flattened to a Ref by the Stack object, which contains the master
-# name<->object mapping.
-
 
 class Stack(object):
 
@@ -306,26 +301,3 @@ class EC2Instance(BaseInstance):
 
 def jsonify(obj, indent=2, *args, **kwargs):
   return json.dumps(obj.template, indent=indent, *args, **kwargs)
-
-
-def file2cfn(fh):
-  return {'Fn::Join': ['', fh.readlines()]}
-
-def json2cfn(fh):
-  s = json.load(fh)
-  t = cfn.Template()
-  if 'Description' in s:
-    t.Description = s['Description']
-  if 'Mappings' in s:
-    t.Mappings = s['Mappings']
-  if 'Outputs' in s:
-    t.Outputs = s['Outputs']
-  if 'Parameters' in s:
-    t.Parameters = s['Parameters']
-  if 'Resources' in s:
-    t.Resources = s['Resources']
-  return t
-
-if __name__ == '__main__':
-  t = json2cfn(open('scratch.json', 'r'))
-  print t.dumps()
