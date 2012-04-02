@@ -83,9 +83,6 @@ class Mapping:
 # Utility class; will never be an attriute of Stack
 class InterpolatedScript(object):
 
-  # Or maybe pass in a dict, and XXX__KEY__XXX can refer to dict['KEY']?
-  # Yeah I like that.
-
   param_regex = re.compile(r"XXX__(?P<obj>\S+)__XXX")
 
   def __init__(self, fh, substitutions={}):
@@ -106,31 +103,6 @@ class InterpolatedScript(object):
   @property
   def template(self):
     return self.lines
-
-
-class Resource(object):
-
-  keymap = {'Type': 'resource_type',
-            'Properties': 'properties',
-            'Metadata': 'metadata',
-            'DependsOn': 'depends_on',
-            'DeletionPolicy': 'deletion_policy'}
-
-  def __init__(self, resource_type):
-    self.resource_type = resource_type
-
-  @property
-  def template(self):
-    T = {}
-    for key, attrib_name in self.keymap.items():
-      try:
-        attrib = getattr(self, attrib_name)
-      except AttributeError:
-        pass
-      else:
-        if attrib:
-          T[key] = attrib
-    return T
 
 
 # Utility class; will never be an attriute of Stack
@@ -181,9 +153,36 @@ class Config(object):
   def template(self):
     return self.__dict__                # XXX XXX XXX 
 
+# ----------
 
-# Utility class; will never be an attriute of Stack
-class CFNInit(Resource):
+class Resource(object):
+
+  keymap = {'Type': 'resource_type',
+            'Properties': 'properties',
+            'Metadata': 'metadata',
+            'DependsOn': 'depends_on',
+            'DeletionPolicy': 'deletion_policy'}
+
+  def __init__(self, resource_type):
+    self.resource_type = resource_type
+
+  @property
+  def template(self):
+    T = {}
+    for key, attrib_name in self.keymap.items():
+      try:
+        attrib = getattr(self, attrib_name)
+      except AttributeError:
+        pass
+      else:
+        if attrib:
+          T[key] = attrib
+    return T
+
+
+class CFN_Init(Resource):
+
+  """AWS::CloudFormation::Init"""
 
   # Is officialy a Resource Type, but doesn't quite act like one --
   # no Type attribute, no Properties, &c.
@@ -229,21 +228,65 @@ class CFNInit(Resource):
     for config in self.configs:
       D['config'] = config.template
     return {'AWS::CloudFormation::Init': D}
-    
 
-class BaseInstance(Resource):
+
+class CFN_WaitCondition(Resource):
+
+  """AWS::CloudFormation::WaitCondition"""
 
   def __init__(self):
-    super(BaseInstance, self).__init__(resource_type='AWS::EC2::Instance')
+    super(CFN_WaitCondition, self).__init__(resource_type="AWS::CloudFormation::WaitCondition")
+    
+
+class CFN_WaitHandle(Resource):
+
+  """AWS::CloudFormation::WaitHandle"""
+
+  def __init__(self):
+    super(CFN_WaitHandle, self).__init__(resource_type="AWS::CloudFormation::WaitHandle")
+    
+
+class EC2_Instance(Resource):
+
+  """AWS::EC2::Instance"""
+
+  def __init__(self):
+    super(EC2_Instance, self).__init__(resource_type="AWS::EC2::Instance")
     self.properties = {}
     self.metadata = {}
 
 
-class EC2Instance(BaseInstance):
+class EC2_SecurityGroup(Resource):
+
+  """AWS::EC2::SecurityGroup"""
+
+  def __init__(self):
+    super(EC2_SecurityGroup, self).__init__( resource_type="AWS::EC2::SecurityGroup")
+
+
+class IAM_AccessKey(Resource):
+
+  """AWS::IAM::AccessKey"""
+
+  def __init__(self):
+    super(IAM_AccessKey, self).__init__(resource_type="AWS::IAM::AccessKey")
+
+
+class IAM_User(Resource):
+
+  """AWS::IAM::User"""
+
+  def __init__(self):
+    super(IAM_User, self).__init__(resource_type="AWS::IAM::User")
+
+# ----------
+
+# High-level class
+class EC2Instance(EC2_Instance):
 
   def __init__(self, image_id, keypair, instance_type, userdata_files=[],
-               userdata_script_fh=None, cfn_init=CFNInit(), security_groups=[],
-               tags=[]):
+               userdata_script_fh=None, cfn_init=CFN_Init(),
+               security_groups=[], tags=[]):
 
     super(EC2Instance, self).__init__()
 
@@ -264,8 +307,9 @@ class EC2Instance(BaseInstance):
     if userdata_files:
       self.properties['UserData'] = self._format_userdata(userdata_files)
     elif userdata_script_fh:
-      script = InterpolatedScript(userdata_script_fh)
-      self.properties['UserData'] = Fn_Base64(Fn_Join('', script.template))
+      userdata_script = InterpolatedScript(userdata_script_fh)
+      self.properties['UserData'] = \
+          Fn_Base64(Fn_Join('', userdata_script.template))
 
     self.cfn_config = {}
     self.metadata["AWS::CloudFormation::Init"] = {"config": self.cfn_config}
