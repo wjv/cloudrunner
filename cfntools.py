@@ -91,9 +91,9 @@ class InterpolatedScript(object):
   def __init__(self, fh, substitutions={}):
     #substitutions is a dict of obj_name->objects
     self.lines = []
-    for line in fh.xreadlines():
+    for line in fh.readlines():
       while True:
-        m = param_regex.search(line)
+        m = self.param_regex.search(line)
         if not m:
           self.lines.append(line)
           break
@@ -242,7 +242,7 @@ class BaseInstance(Resource):
 class EC2Instance(BaseInstance):
 
   def __init__(self, image_id, keypair, instance_type, userdata_files=[],
-               userdata_script='', cfn_init=CFNInit(), security_groups=[],
+               userdata_script_fh=None, cfn_init=CFNInit(), security_groups=[],
                tags=[]):
 
     super(EC2Instance, self).__init__()
@@ -263,8 +263,9 @@ class EC2Instance(BaseInstance):
     # userdata_files takes precedence over userdata_script
     if userdata_files:
       self.properties['UserData'] = self._format_userdata(userdata_files)
-    elif userdata_script:
-      self.properties['UserData'] = fn_join('', userdata_script.readliens())
+    elif userdata_script_fh:
+      script = InterpolatedScript(userdata_script_fh)
+      self.properties['UserData'] = Fn_Base64(Fn_Join('', script.template))
 
     self.cfn_config = {}
     self.metadata["AWS::CloudFormation::Init"] = {"config": self.cfn_config}
