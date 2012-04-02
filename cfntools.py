@@ -1,3 +1,6 @@
+# XXX Current problem:  Config, CFNInit (&c?) objects not stored in Stack's
+# namespace so deref don't work
+
 #!/usr/bin/env python
 
 import json
@@ -207,14 +210,22 @@ class CFNInit(Resource):
       self.configsets = template.pop('configsets')
     except KeyError:
       self.configsets = {}
-    if not template:
-      self.configs = {'config': Config()} # XXX
+    if len(template) == 0:
+      self.configs = {}
     elif len(template) == 1:
       self.configs = {'config', Config(template.pop('config'))}
     else:
       self.configs = dict((k, Config(v)) for k, v in template.items())
 
-  def add_config(self, name, template={}):
+  def __len__(self):
+    # Allows truth-testing on CFNInit instance
+    return len(self.configs)
+
+  def add_config(self, name='', template={}):
+    if not name and not self:
+      self.add_config(name='config', template=template)
+    if name in self.configs:
+      raise AttributeError, "Config with name '%s' already present" % name
     self.configs[name] = Config(template)
 
   # configsets is a dict of lists of config _names_
@@ -246,13 +257,15 @@ class BaseInstance(Resource):
 class EC2Instance(BaseInstance):
 
   def __init__(self, image_id, keypair, instance_type, userdata_files=[],
-               userdata_script='', security_groups=[], tags=[]):
+               userdata_script='', cfn_init=CFNInit(), security_groups=[],
+               tags=[]):
 
     super(EC2Instance, self).__init__()
 
     self.properties['InstanceType'] = instance_type
     self.properties['ImageId'] = image_id
     self.properties['KeyPair'] = Ref(keypair)
+    self.properties['Metadata'] = cfn_init
 
     if security_groups:
       self.properties['SecurityGroups'] = security_groups
