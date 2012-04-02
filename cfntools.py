@@ -78,7 +78,20 @@ class Parameter:
 
 
 class Mapping:
-  pass
+
+  # This is essentially a dictionary where every key has a bunch of named
+  # values (another dict!)
+  # This is very rough -- eventually reimplement as a subclass of dict?
+
+  def __init__(self.valuenames, mapping={}):
+    self.template = mapping
+
+  def put(self, key, valuename, value):
+    self.template[key][valuename] = value
+
+  def get(self.key, valuename):
+    return self.template[key][valuename]
+
 
 # Utility class; will never be an attriute of Stack
 class InterpolatedScript(object):
