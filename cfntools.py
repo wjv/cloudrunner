@@ -1,6 +1,3 @@
-# XXX Current problem:  Config, CFNInit (&c?) objects not stored in Stack's
-# namespace so deref don't work
-
 #!/usr/bin/env python
 
 import json
@@ -42,9 +39,7 @@ class Stack(object):
 
   def dereference(self, obj):
     """Return (obj.name, obj.template) fullly resolved in Stack's namespace."""
-    namespace = self.namespace
-    obj_name = namespace.inv[obj]
-    def _flatten(t_obj, namespace=namespace):
+    def _flatten(t_obj):
       if isinstance(t_obj, dict):
         return dict([(k, _flatten(v)) for (k, v) in t_obj.items()])
       elif isinstance(t_obj, list):
@@ -52,13 +47,8 @@ class Stack(object):
       elif isinstance(t_obj, str):
         return t_obj
       else:
-        try:
-          r = t_obj.resolve(namespace)
-        except AttributeError:
-          raise AttributeError, "No 'resolve' attribute in %s named %s" % \
-                                (repr(t_obj), namespace.inv[t_obj])
-        return r
-    return obj_name, _flatten(obj.template)
+        return _flatten(t_obj.template)
+    return self.namespace.inv[obj], _flatten(obj.template)
 
   @property
   def template(self):

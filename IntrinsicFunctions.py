@@ -2,40 +2,32 @@
 
 __all__ = ['Fn_Join', 'Fn_GetAtt', 'Ref']
 
-# The idea is now that an IntrinsicFunction instance may be created anywhere,
-# but can only be resolve()'d inside a Stack. Possibly the resolve() method
-# should be added to all parameters &c., so that a Stack can simply do a
-# recursive resolve() on any object.
-#
-# Nope, let's very specifically only give resolve() methods to objects that can
-# resolve, thereby causing an exception if we try to call resolve() on anything
-# else!
 
 class IntrinsicFunction(object):
-
-  def resolve(self, namespace):
-    # Should we pass namespace here, or just leave it for those IFuncs that
-    # contain refs to override resolve() i.t.o. its params as well?
-    return self.template
+  pass
 
 
 class Fn_Join(IntrinsicFunction):
 
-  def __init__(self):
-    self.template = {"Fn::Join", [sep, lst]}
+  def __init__(self, separator, lst):
+    self.separator = sep
+    self.lst = lst
+
+  @property
+  def template(self):
+    return {"Fn::Join", [sep, lst]}
 
 
 class Fn_GetAtt(IntrinsicFunction):
 
-  def __init__(self, obj, attrib):
+  def __init__(self, obj, attrib_name):
     # obj is the actual object; attrib is the attribute *name*
     self.obj = obj
-    self.attrib = attrib
-    #self.template = {"Fn::GetAtt": [self.obj, self.attrib]}
+    self.attrib_name = attrib_name
 
-  def resolve(self, namespace):
-    # Maybe this should just BE the template property?
-    return {"Fn::GetAtt": [namespace.inv[self.obj], self.attrib]}
+  @property
+  def template(self):
+    return {"Fn::GetAtt": [self.obj, self.attrib_name]}
 
 
 class Ref(IntrinsicFunction):
@@ -43,5 +35,6 @@ class Ref(IntrinsicFunction):
   def __init__(self, obj):
     self.obj = obj
 
-  def resolve(self, namespace):
-    return {"Ref": namespace.inv[self.obj]}
+  @property
+  def template(self):
+    return {"Ref": self.obj}
