@@ -1,6 +1,6 @@
 """AWS CloudFormation Intrinsic Functions"""
 
-__all__ = ['Fn_Join', 'Fn_GetAtt', 'Ref']
+__all__ = ['Fn_Join', 'Fn_Base64', 'Fn_GetAtt', 'Ref']
 
 
 class IntrinsicFunction(object):
@@ -10,12 +10,21 @@ class IntrinsicFunction(object):
 class Fn_Join(IntrinsicFunction):
 
   def __init__(self, separator, lst):
-    self.separator = sep
+    self.separator = separator
     self.lst = lst
 
   @property
   def template(self):
-    return {"Fn::Join", [sep, lst]}
+    return {"Fn::Join": [self.separator, self.lst]}
+
+class Fn_Base64(IntrinsicFunction):
+
+  def __init__(self, obj):
+    self.obj = obj
+
+  @property
+  def template(self):
+    return {"Fn:Base64": self.obj}
 
 
 class Fn_GetAtt(IntrinsicFunction):
