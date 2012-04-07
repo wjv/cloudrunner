@@ -83,13 +83,13 @@ class Mapping:
   # values (another dict!)
   # This is very rough -- eventually reimplement as a subclass of dict?
 
-  def __init__(self.valuenames, mapping={}):
+  def __init__(self, valuenames, mapping={}):
     self.template = mapping
 
   def put(self, key, valuename, value):
     self.template[key][valuename] = value
 
-  def get(self.key, valuename):
+  def get(self, key, valuename):
     return self.template[key][valuename]
 
 
@@ -165,6 +165,29 @@ class Config(object):
   @property
   def template(self):
     return self.__dict__                # XXX XXX XXX 
+
+# ----------
+
+class ResourceProperty(object):
+
+  @property
+  def template(self):
+    return self.properties
+
+
+class EC2SecurityGroupRule(ResourceProperty):
+
+  # XXX anything in stdlip for handling IP addresses &c.?
+
+  def __init__(self, ip_protocol, from_port, to_port cidr_ip='', sourcegroup='')
+    self.properties = {}
+    self.properties['IpProtocol'] = ip_protocol
+    self.properties['FromPort'] = from_port
+    self.properties['ToPort'] = to_port
+    if sourcegroup:
+      self.properties['SourceSecurityGroupName'] = sourcegroup
+    else:
+      self.properties['CidrIp'] = cidr_ip
 
 # ----------
 
@@ -281,16 +304,74 @@ class IAM_AccessKey(Resource):
 
   """AWS::IAM::AccessKey"""
 
-  def __init__(self):
+  def __init__(self, user):
     super(IAM_AccessKey, self).__init__(resource_type="AWS::IAM::AccessKey")
+    self.properties = {}
+    self.properties['UserName'] = Ref(user)
+
+
+class IAM_Policy(Resource):
+
+  """AWS::IAM::Policy"""
+
+  # http://docs.amazonwebservices.com/IAM/latest/UserGuide/AccessPolicyLanguage.html
+  # Maybe for now just read in pre-created JSON policydocs?
+
+  def __init__(self, name, policydoc, groups=[], users=[]):
+    super(IAM_Policy, self).__init__(resource_type="AWS::IAM::Policy")
+    self.properties = {}
+    self.properties['PolicyName'] = name
+    self.properties['PolicyDocument'] = policydoc
+    if groups:
+      self.properties['Groups'] = map(Ref, groups)
+    if users:
+      self.properties['Users'] = map(Ref, users)
+
+  # XXX This probably needs to GO
+  @property
+  def reference(self):
+    return self.properties
 
 
 class IAM_User(Resource):
 
   """AWS::IAM::User"""
 
-  def __init__(self):
+  def __init__(self, path='/', groups=[], password='', policies=[]):
     super(IAM_User, self).__init__(resource_type="AWS::IAM::User")
+    self.properties = {}
+    if path:
+      self.properties['Path'] = path
+    if groups:
+      self.properties['Groups'] = groups
+    if password:
+      self.properties['LoginProfile'] = {"Password": password}
+    if policies:
+      # XXX These have to be inline; the obverse is to insert references to
+      # users into IAM::Policy
+      # For starters might just be best NOT to define policies here.
+      self.properties['Policies'] = policies
+
+  # See XXX above
+  def addPolicy(self, policy):
+    if isinsance(policy, IAM_Policy):
+      policy = Ref(policy)
+    try:
+      self.properties['Policies'].append(policy)
+    except AttributeError:
+      self.properties['Policies'] = [policy]
+
+
+class IAM_UserToGroupAddition(Resource):
+
+  """AWS::IAM::UsertoGroupAddition"""
+
+  def __init__(self, group, users):
+    super(IAM_UserToGroupAddition, self).__init__(resource_type="AWS::IAM::UserToGroupAddition")
+    self.properties = {}
+    self.group = Ref(group)
+    self.users = map(Ref, users)
+
 
 # ----------
 

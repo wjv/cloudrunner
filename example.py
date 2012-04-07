@@ -13,7 +13,12 @@ echo 'World!'
 
 S = Stack()
 
+# parameters
 pKeyName = Parameter(paramtype='String', description="EC2 key pair")
+
+# stack
+
+root_policy = IAM_Policy(
 
 C = Config()
 C.add_command("list files", "ls -al")

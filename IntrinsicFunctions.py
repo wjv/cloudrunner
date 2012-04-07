@@ -69,4 +69,7 @@ class Ref(IntrinsicFunction):
 
   @property
   def template(self):
-    return {"Ref": self.obj}
+    try:
+      return self.obj.reference
+    except AttributeError:
+      return {"Ref": self.obj}
