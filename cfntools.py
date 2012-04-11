@@ -34,12 +34,14 @@ class Stack(object):
 
   def dereference(self, obj):
     """Return (obj.name, obj.template) fullly resolved in Stack's namespace."""
+    # XXX Should really be done with a sublass of json.JSONEncoder
+    # _flatten() can then become a simple invocation of JSONEncoder.encode()
     def _flatten(t_obj):
       if isinstance(t_obj, dict):
         return dict([(k, _flatten(v)) for (k, v) in t_obj.items()])
       elif isinstance(t_obj, list):
         return map(_flatten, t_obj)
-      elif isinstance(t_obj, str):
+      elif isinstance(t_obj, (str, unicode)):
         return t_obj
       else:
         return _flatten(t_obj.template)
@@ -177,9 +179,10 @@ class ResourceProperty(object):
 
 class EC2SecurityGroupRule(ResourceProperty):
 
-  # XXX anything in stdlip for handling IP addresses &c.?
+  # XXX anything in stdlib for handling IP addresses &c.?
 
-  def __init__(self, ip_protocol, from_port, to_port cidr_ip='', sourcegroup='')
+  def __init__(self, ip_protocol, from_port, to_port, cidr_ip='',
+               sourcegroup=''):
     self.properties = {}
     self.properties['IpProtocol'] = ip_protocol
     self.properties['FromPort'] = from_port
@@ -190,6 +193,8 @@ class EC2SecurityGroupRule(ResourceProperty):
       self.properties['CidrIp'] = cidr_ip
 
 # ----------
+
+# XXX There really should be a way to generate subclasses of Resource
 
 class Resource(object):
 
@@ -315,13 +320,15 @@ class IAM_Policy(Resource):
   """AWS::IAM::Policy"""
 
   # http://docs.amazonwebservices.com/IAM/latest/UserGuide/AccessPolicyLanguage.html
+  # http://awspolicygen.s3.amazonaws.com/policygen.html
+  #
   # Maybe for now just read in pre-created JSON policydocs?
 
   def __init__(self, name, policydoc, groups=[], users=[]):
     super(IAM_Policy, self).__init__(resource_type="AWS::IAM::Policy")
     self.properties = {}
     self.properties['PolicyName'] = name
-    self.properties['PolicyDocument'] = policydoc
+    self.properties['PolicyDocument'] = json.loads(policydoc)
     if groups:
       self.properties['Groups'] = map(Ref, groups)
     if users:
