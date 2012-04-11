@@ -1,3 +1,6 @@
+import re
+
+
 class InterpolatedScript(object):
 
   param_regex = re.compile(r"XXX__(?P<obj>\S+)__XXX")
