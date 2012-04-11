@@ -12,6 +12,14 @@ from bidict import bidict
 import cloudformation as cfn
 
 
+class CFN_JSONEncoder(json.JSONEncoder):
+  
+  def default(self, o):
+    try:
+      return o.template
+    except AttributeError:
+      return super(Encoder, self).default(self, o)
+
 class Stack(object):
 
   def __init__(self, description="", version="2010-09-09"):
@@ -34,18 +42,7 @@ class Stack(object):
 
   def dereference(self, obj):
     """Return (obj.name, obj.template) fullly resolved in Stack's namespace."""
-    # XXX Should really be done with a sublass of json.JSONEncoder
-    # _flatten() can then become a simple invocation of JSONEncoder.encode()
-    def _flatten(t_obj):
-      if isinstance(t_obj, dict):
-        return dict([(k, _flatten(v)) for (k, v) in t_obj.items()])
-      elif isinstance(t_obj, list):
-        return map(_flatten, t_obj)
-      elif isinstance(t_obj, (str, unicode)):
-        return t_obj
-      else:
-        return _flatten(t_obj.template)
-    return self.namespace.inv[obj], _flatten(obj.template)
+    return self.namespace.inv[obj], obj
 
   @property
   def template(self):

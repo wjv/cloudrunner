@@ -49,4 +49,5 @@ S.addResource("myInstance", myInstance)
 S.addResource("UserPolicy", root_policy)
 
 
-print json.dumps(S.template, indent=2)
+Encoder = CFN_JSONEncoder(indent=2)
+print Encoder.encode(S.template)
