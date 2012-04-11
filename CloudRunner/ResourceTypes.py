@@ -189,10 +189,9 @@ class IAM_UserToGroupAddition(Resource):
     self.users = map(Ref, users)
 
 
-resourcetypes = \
-"""
-EC2Instance     AWS::EC2::Instance      ImageId
-"""
+resourcetypes = {
+  "AWS::EC2::Instance": ["ImageId"]
+}
 
 class ResourceType(object):
 
@@ -236,15 +235,17 @@ def make_init(resource_type, required_properties):
           properties[p] = args.pop(0)
         except IndexError:
           raise TypeError, '"%s" requires property "%s"' % (resource_type, p)
-    Resource.__init__(self, *args, **kwargs)
+    ResourceType.__init__(self, *args, **kwargs)
     self.Properties.update(properties)
   i.__name__ = '__init__'
   return i
 
-def make_resourcetype(name, type_id, required_properties):
-  return type(name, (ResourceType,),
+def make_resourcetype(class_name, type_id, required_properties):
+  return type(class_name, (ResourceType,),
               {'__init__': make_init(type_id, required_properties),
                '__doc__': type_id})
 
-EC2_Instance = make_resourcetype("EC2Instance", "AWS::EC2::Instance",
-                                ["ImageId"])
+for type_id, required_properties in resourcetypes.items():
+  class_name = type_id.replace('AWS::', '').replace('::', '_')
+  globals()[class_name] = make_resourcetype(class_name, type_id,
+                                            required_properties)
