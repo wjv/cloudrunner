@@ -1,0 +1,1 @@
+from CFN import Stack
