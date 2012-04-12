@@ -1,6 +1,14 @@
 from bidict import bidict
 
-__all__ = ["Parameter", "Mapping", "Stack"]
+import ResourceTypes
+import ResourcePropertyTypes
+import IntrinsicFunctions
+import PseudoParameters
+
+
+__all__ = ["Parameter", "Mapping", "Stack",
+           "ResourceTypes", "ResourcePropertyTypes",
+           "IntrinsicFunctions", "PseudoParameters"]
 
 
 class Parameter:
