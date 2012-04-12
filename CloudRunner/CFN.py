@@ -1,5 +1,7 @@
 from bidict import bidict
 
+__all__ = ["Parameter", "Mapping", "Stack"]
+
 
 class Parameter:
 
@@ -51,7 +53,7 @@ class Stack(object):
     self.parameters.append(p)
 
   def addResource(self, name, r):
-    assert isinstance(r, Resource)
+    #assert isinstance(r, Resource)
     self.namespace[name] = r
     self.resources.append(r)
 

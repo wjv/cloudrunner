@@ -3,7 +3,10 @@
 from StringIO import StringIO
 
 from CloudRunner.ResourceTypes import *
-from CloudRunner.CFN import Stack
+from CloudRunner.CFN import *
+from CloudRunner.Utilities import Config
+from CloudRunner import CFN_JSONEncoder, CFN_JSONDecoder
+from CloudRunner.Library import EC2Instance
 
 myscript = StringIO("""#!/bin/bash
 
@@ -17,7 +20,7 @@ S = Stack()
 pKeyName = Parameter(paramtype='String', description="EC2 key pair")
 
 # stack
-policy_doc = \
+policy_doc = CFN_JSONDecoder().decode(
 """{
   "Statement" : [
     {
@@ -26,7 +29,7 @@ policy_doc = \
       "Resource" : "*"
     }
   ]
-}"""
+}""")
 
 root_policy = IAM_Policy("root", policy_doc)
 

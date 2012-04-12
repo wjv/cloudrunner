@@ -10,3 +10,6 @@ class CFN_JSONEncoder(json.JSONEncoder):
       return o.template
     except AttributeError:
       return super(Encoder, self).default(self, o)
+
+class CFN_JSONDecoder(json.JSONDecoder):
+  pass

@@ -2,6 +2,7 @@
 
 
 from PseudoParameters import *
+from Utilities import Config
 
 
 class Resource(object):
