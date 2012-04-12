@@ -1,24 +1,35 @@
 """AWS Resource Property Types"""
 
 
-class ResourceProperty(object):
+class ResourcePropertyType(object):
 
   @property
   def template(self):
-    return self.properties
+    return self.Properties
 
+class LoginProfile(object):
 
-class EC2SecurityGroupRule(ResourceProperty):
+  # Embedded property of AWS::IAM::User
+
+  def __init__(self, Password=''):
+    self.Password = Password
+
+  @property
+  def template(self):
+    return {"Password": self.Password}
+  
+
+class EC2SecurityGroupRule(ResourcePropertyType):
 
   # XXX anything in stdlib for handling IP addresses &c.?
 
   def __init__(self, ip_protocol, from_port, to_port, cidr_ip='',
                sourcegroup=''):
-    self.properties = {}
-    self.properties['IpProtocol'] = ip_protocol
-    self.properties['FromPort'] = from_port
-    self.properties['ToPort'] = to_port
+    self.Properties = {}
+    self.Properties['IpProtocol'] = ip_protocol
+    self.Properties['FromPort'] = from_port
+    self.Properties['ToPort'] = to_port
     if sourcegroup:
-      self.properties['SourceSecurityGroupName'] = sourcegroup
+      self.Properties['SourceSecurityGroupName'] = sourcegroup
     else:
-      self.properties['CidrIp'] = cidr_ip
+      self.Properties['CidrIp'] = cidr_ip
