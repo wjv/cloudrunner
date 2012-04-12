@@ -196,7 +196,11 @@ def make_resourcetype(class_name, type_id, required_properties):
               {'__init__': make_init(type_id, required_properties),
                '__doc__': type_id})
 
+__all__ = ["CFN_Init"]
+
 for type_id, required_properties in resourcetypes.items():
   class_name = type_id.replace('AWS::', '').replace('::', '_')
   globals()[class_name] = make_resourcetype(class_name, type_id,
                                             required_properties)
+  __all__.append(class_name)
+
