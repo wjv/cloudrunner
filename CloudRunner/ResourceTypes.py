@@ -1,7 +1,6 @@
 """AWS Resource Types"""
 
 
-from IntrinsicFunctions import *
 from PseudoParameters import *
 
 
@@ -80,50 +79,7 @@ class CFN_Init(Resource):
     return {'AWS::CloudFormation::Init': D}
 
 
-class CFN_WaitCondition(Resource):
-
-  """AWS::CloudFormation::WaitCondition"""
-
-  def __init__(self):
-    super(CFN_WaitCondition, self).__init__(resource_type="AWS::CloudFormation::WaitCondition")
-    
-
-class CFN_WaitHandle(Resource):
-
-  """AWS::CloudFormation::WaitHandle"""
-
-  def __init__(self):
-    super(CFN_WaitHandle, self).__init__(resource_type="AWS::CloudFormation::WaitHandle")
-    
-
-class EC2_Instance(Resource):
-
-  """AWS::EC2::Instance"""
-
-  def __init__(self):
-    super(EC2_Instance, self).__init__(resource_type="AWS::EC2::Instance")
-    self.properties = {}
-    self.metadata = {}
-
-
-class EC2_SecurityGroup(Resource):
-
-  """AWS::EC2::SecurityGroup"""
-
-  def __init__(self):
-    super(EC2_SecurityGroup, self).__init__( resource_type="AWS::EC2::SecurityGroup")
-
-
-class IAM_AccessKey(Resource):
-
-  """AWS::IAM::AccessKey"""
-
-  def __init__(self, user):
-    super(IAM_AccessKey, self).__init__(resource_type="AWS::IAM::AccessKey")
-    self.properties = {}
-    self.properties['UserName'] = Ref(user)
-
-
+# TODO: Integrate into new class and delete this
 class IAM_Policy(Resource):
 
   """AWS::IAM::Policy"""
@@ -143,12 +99,8 @@ class IAM_Policy(Resource):
     if users:
       self.properties['Users'] = map(Ref, users)
 
-  # XXX This probably needs to GO
-  @property
-  def reference(self):
-    return self.properties
 
-
+# TODO: Integrate into new class and delete this
 class IAM_User(Resource):
 
   """AWS::IAM::User"""
@@ -178,20 +130,19 @@ class IAM_User(Resource):
       self.properties['Policies'] = [policy]
 
 
-class IAM_UserToGroupAddition(Resource):
-
-  """AWS::IAM::UsertoGroupAddition"""
-
-  def __init__(self, group, users):
-    super(IAM_UserToGroupAddition, self).__init__(resource_type="AWS::IAM::UserToGroupAddition")
-    self.properties = {}
-    self.group = Ref(group)
-    self.users = map(Ref, users)
-
+# XXX --- XXX #
 
 resourcetypes = {
-  "AWS::EC2::Instance": ["ImageId"]
+  "AWS::CloudFormation::WaitCondition": ["Handle", "Timeout"],
+  "AWS::CloudFormation::WaitConditionHandle": [],
+  "AWS::EC2::Instance": ["ImageId"],
+  "AWS::EC2::SecurityGroup": ["GroupDescription"],
+  "AWS::IAM::AccessKey": ["UserName"],
+  "AWS::IAM::Policy": ["PolicyName", "PolicyDocument"],
+  "AWS::IAM::User": [],
+  "AWS::IAM::UserToGroupAddition": ["Group", "Users"]
 }
+
 
 class ResourceType(object):
 
