@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import json
 from StringIO import StringIO
 
-from cfntools import *
+from CloudRunner.ResourceTypes import *
+from CloudRunner.CFN import Stack
 
 myscript = StringIO("""#!/bin/bash
 
