@@ -1,12 +1,12 @@
 from ResourceTypes import *
 from IntrinsicFunctions import *
-from Utilities import *
+from Config import InterpolatedScript
 
 
 class EC2Instance(EC2_Instance):
 
   def __init__(self, image_id, keypair, instance_type, userdata_files=[],
-               userdata_script_fh=None, cfn_init=CFN_Init(),
+               userdata_script_fh=None, cfn_init=CloudFormation_Init(),
                security_groups=[], tags=[]):
 
     super(EC2Instance, self).__init__(ImageId=image_id)

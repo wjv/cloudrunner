@@ -2,9 +2,8 @@
 
 from StringIO import StringIO
 
-from CloudRunner.ResourceTypes import *
-from CloudRunner.CFN import *
-from CloudRunner.Utilities import Config
+from CloudRunner.CloudFormation import *
+from CloudRunner.Config import InterpolatedScript, Config
 from CloudRunner import CFN_JSONEncoder, CFN_JSONDecoder
 from CloudRunner.Library import EC2Instance
 
@@ -31,7 +30,7 @@ policy_doc = CFN_JSONDecoder().decode(
   ]
 }""")
 
-root_policy = IAM_Policy("root", policy_doc)
+root_policy = ResourceTypes.IAM_Policy("root", policy_doc)
 
 C = Config()
 C.add_command("list files", "ls -al")
@@ -40,7 +39,7 @@ C.add_package("yum", "gcc")
 
 myconfig = Config()
 myconfig.add_package('yum', 'gcc')
-cfn_init = CFN_Init()
+cfn_init = ResourceTypes.CloudFormation_Init()
 cfn_init.add_config(myconfig)
 myInstance = EC2Instance(image_id="ABI-abc", keypair=pKeyName,
                          instance_type="foo.small", cfn_init=cfn_init,

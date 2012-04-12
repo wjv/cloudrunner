@@ -30,56 +30,6 @@ class Resource(object):
     return T
 
 
-class CFN_Init(Resource):
-
-  """AWS::CloudFormation::Init"""
-
-  # Is officialy a Resource Type, but doesn't quite act like one --
-  # no Type attribute, no Properties, &c.
-  # NOTE that generally we either contain one configset and a bunch of configs,
-  # or a single config named 'config'.
-
-  def __init__(self, template={}):
-    try:
-      self.configsets = template.pop('configsets')
-    except KeyError:
-      self.configsets = {}
-    if len(template) == 0:
-      self.configs = {}
-    elif len(template) == 1:
-      self.configs = {'config', Config(template.pop('config'))}
-    else:
-      self.configs = dict((k, Config(v)) for k, v in template.items())
-
-  def __len__(self):
-    # Allows truth-testing on CFNInit instance
-    return len(self.configs)
-
-  def add_config(self, name='', template={}):
-    if not name and not self:
-      self.add_config(name='config', template=template)
-    if name in self.configs:
-      raise AttributeError, "Config with name '%s' already present" % name
-    self.configs[name] = Config(template)
-
-  # configsets is a dict of lists of config _names_
-  def add_configset(self, name, configlist):
-    self.configsets[name] = []
-    for configname in configlist:
-      if config not in self.configs:
-        self.add_config(configname)
-      self.configsets[name].append(configname)
-
-  @property
-  def template(self):
-    D = {}
-    if self.configsets:
-      D['configsets'] = self.configsets
-    for config in self.configs:
-      D['config'] = config.template
-    return {'AWS::CloudFormation::Init': D}
-
-
 # TODO: Integrate into new class and delete this
 class IAM_Policy(Resource):
 
@@ -197,7 +147,7 @@ def make_resourcetype(class_name, type_id, required_properties):
               {'__init__': make_init(type_id, required_properties),
                '__doc__': type_id})
 
-__all__ = ["CFN_Init"]
+__all__ = []
 
 for type_id, required_properties in resourcetypes.items():
   class_name = type_id.replace('AWS::', '').replace('::', '_')
@@ -205,3 +155,5 @@ for type_id, required_properties in resourcetypes.items():
                                             required_properties)
   __all__.append(class_name)
 
+from Config import CloudFormation_Init
+__all__.append("CloudFormation_Init")

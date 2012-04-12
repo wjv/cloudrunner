@@ -1,5 +1,61 @@
 import re
 
+from ResourceTypes import ResourceType
+
+__all__ = ["CloudFormation_Init", "Config", "InterpolatedScript"]
+
+
+class CloudFormation_Init(ResourceType):
+
+  """AWS::CloudFormation::Init"""
+
+  # Is officialy a Resource Type, but doesn't quite act like one --
+  # no Type attribute, no Properties, &c.
+  # NOTE that generally we either contain one configset and a bunch of configs,
+  # or a single config named 'config'.
+
+  def __init__(self, template={}):
+    self.Type = "AWS::CloudFormation::Init"""
+    try:
+      self.configsets = template.pop('configsets')
+    except KeyError:
+      self.configsets = {}
+    if len(template) == 0:
+      self.configs = {}
+    elif len(template) == 1:
+      self.configs = {'config', Config(template.pop('config'))}
+    else:
+      self.configs = dict((k, Config(v)) for k, v in template.items())
+
+  def __len__(self):
+    # Allows truth-testing on CFNInit instance
+    return len(self.configs)
+
+  def add_config(self, name='', template={}):
+    if not name and not self:
+      self.add_config(name='config', template=template)
+    if name in self.configs:
+      raise AttributeError, "Config with name '%s' already present" % name
+    self.configs[name] = Config(template)
+
+  # configsets is a dict of lists of config _names_
+  def add_configset(self, name, configlist):
+    self.configsets[name] = []
+    for configname in configlist:
+      if config not in self.configs:
+        self.add_config(configname)
+      self.configsets[name].append(configname)
+
+  @property
+  def template(self):
+    D = {}
+    if self.configsets:
+      D['configsets'] = self.configsets
+    for config in self.configs:
+      D['config'] = config.template
+    return {'AWS::CloudFormation::Init': D}
+
+
 class InterpolatedScript(object):
 
   param_regex = re.compile(r"XXX__(?P<obj>\S+)__XXX")

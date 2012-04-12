@@ -1,14 +1,13 @@
-from bidict import bidict
-
 import ResourceTypes
 import ResourcePropertyTypes
 import IntrinsicFunctions
 import PseudoParameters
 
-
 __all__ = ["Parameter", "Mapping", "Stack",
            "ResourceTypes", "ResourcePropertyTypes",
            "IntrinsicFunctions", "PseudoParameters"]
+
+from bidict import bidict
 
 
 class Parameter:

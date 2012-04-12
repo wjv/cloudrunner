@@ -1,6 +1,4 @@
 import json
-from CFN import Stack
-
 
 # Move this somewhere else?
 class CFN_JSONEncoder(json.JSONEncoder):
