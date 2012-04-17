@@ -2,6 +2,13 @@ from ResourceTypes import *
 from IntrinsicFunctions import *
 from Config import InterpolatedScript
 
+def new_instance(image_id, instance_type, keypair):
+  i = EC2_Instance(ImageId=image_id)
+  p = i.Properties
+  p['KeyPair'] = keypair
+  p['InstanceType'] = intance_type
+  return i
+
 
 class EC2Instance(EC2_Instance):
 
@@ -9,7 +16,7 @@ class EC2Instance(EC2_Instance):
                userdata_script_fh=None, cfn_init=CloudFormation_Init(),
                security_groups=[], tags=[]):
 
-    super(EC2Instance, self).__init__(ImageId=image_id)
+    super(self.__class__, self).__init__(ImageId=image_id)
 
     self.Properties['InstanceType'] = instance_type
     self.Properties['ImageId'] = image_id
@@ -34,19 +41,6 @@ class EC2Instance(EC2_Instance):
 
     self.cfn_config = {}
     self.Metadata["AWS::CloudFormation::Init"] = {"config": self.cfn_config}
-
-  def addPackage(pkg_type, pkg_name, version_list=[]):
-    assert pkg_type in ['yum', 'python', 'ruby']
-    pkg_dict = self.cfn_config.setdefault('packages', {})
-    pkg_type_dict = pkg_dict.setdefault(pkg_type, {})
-    pkg_type_dict[pkg_name] = version_list
-
-  def addService(service_type, service_name, enabled=True, ensure_running=True):
-    assert service_type in ['sysvinit']
-    srv_dict = self.cfn_config.setdefault('services', {})
-    srv_type_dict = srv_dict.setdefault(service_type, {})
-    srv_type_dict[service_name] = {'enabled': str(enabled).lower(),
-                                   'ensureRunning': str(ensure_running).lower()}
 
   def addCommand(name, command, test='', env={}, ignore_errors=None):
     commands_dict = self.cfn_config.setdefault('commands', {})

@@ -83,23 +83,40 @@ class InterpolatedScript(object):
 class Config(object):
 
   from string import ascii_lowercase as a_l
-  cmd_indices = [c + d for c in a_l for d in a_l]
-  # XXX must delete these two unless we can come up with a rdict we like
-  config_keys = ['commands', 'files', 'groups', 'packages', 'services',
-                 'sources', 'users']
-  pkg_types = ['yum', 'python']                 # XXX expand
+  cmd_indices = [c + d for c in a_l for d in a_l]       # 'aa', 'ab', ..., 'zz'
+
+  template_attributes = ['commands', 'files', 'groups', 'packages', 'services',
+                         'sources', 'users']
+  pkg_types = ['yum', 'python', 'ruby']         # XXX expand
+  srv_types = ['sysvinit']
 
   def __init__(self, template={}):
-    self.__dict__.update(template)              # XXX is this kosher?
+    if template:
+      self.__dict__.update(template)              # XXX is this kosher?
+    else:
+      for attrib in self.template_attributes:
+        setattr(self, attrib, {})
 
   def add_package(self, pkg_type, name, versions=[]):
     if not isinstance(versions, list):
       versions = [versions]
-    if not hasattr(self, 'packages'):
-      self.packages = {}
-    if not 'pkg_type' in self.packages:
-      self.packages[pkg_type] = {}
-    self.packages[pkg_type][name] = versions
+    type_dict = self.packages.setdefault(pkg_type, {})
+    type_dict[name] = versions
+
+  def add_service(self, srv_name, srv_type='sysvinit',
+                  enabled=None, ensureRunning=None,
+                  files=[], sources=[], packages={}, commands=[]):
+    type_dict = self.services.setdefault(srv_type, {})
+    srv_dict = type_dict.setdefault(srv_name, {})
+    for param in "enabled", "ensureRunning":
+      value = vars()[param]
+      if value is not None:
+        srv_dict[param] = value and "true" or "false"
+      for param in "files", "sources", "packages", "commands":
+        value = vars()[param]
+        if value:
+          srv_dict[param] = value
+
 
   def _next_cmdprefix(self, prefix):
     return self.cmd_indices[self.cmd_indices.index(prefix) + 1]
@@ -115,8 +132,7 @@ class Config(object):
     # XXX Figure out a way that commands can have references
     assert isinstance(command, (str, list)), \
         "%s: command must be a string or list" % self.__name__
-    if not hasattr(self, 'commands'):
-      self.commands = {}
+    if not self.commands:
       prefix = 'aa'
     else:
       last_prefix = sorted(self.commands.keys())[-1].split('_')[0]
@@ -125,5 +141,6 @@ class Config(object):
 
   @property
   def template(self):
-    return self.__dict__                # XXX XXX XXX 
+    return dict((k, v) for k, v in self.__dict__.items()
+                if v and k in self.template_attributes)
 

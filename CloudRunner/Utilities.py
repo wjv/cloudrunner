@@ -3,7 +3,7 @@ from contracts import contract  # PyContracts
 class TypedDict(dict):
 
   # keyspec is a dict of keyname:typespec mapings --
-  # typespec as defined in PyContracts
+  # typespec as defined in PyContracts -- either string or callable
   def __init__(self, keyspec, *args, **kwargs):
 
     # create a contract-bound setter method for every allowed key

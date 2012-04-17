@@ -65,7 +65,7 @@ class Stack(object):
     self.resources.append(r)
 
   def dereference(self, obj):
-    """Return (obj.name, obj.template) fullly resolved in Stack's namespace."""
+    """Return (obj.name, obj.template) fully resolved in Stack's namespace."""
     return self.namespace.inv[obj], obj
 
   @property
