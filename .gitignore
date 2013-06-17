@@ -1,0 +1,17 @@
+# Vim
+*~
+*.swp
+Session.vim
+
+# Emacs
+.\#*
+
+# {c,e,ec}tags
+tags
+TAGS
+
+# Python
+*.pyc
+
+# PyCharm
+.idea

@@ -1,4 +1,0 @@
-syntax:glob
-
-# PyCharm
-\.idea/{workspace,tasks}\.xml
